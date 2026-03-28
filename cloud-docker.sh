@@ -66,7 +66,11 @@ install_docker_desktop() {
     sudo apt-get update
     sudo apt-get install ./docker-desktop.deb -y
     rm docker-desktop.deb
-    echo -e "${GREEN}Docker Desktop Installed.${NC}"
+
+    # Enable and start Docker Desktop service
+    systemctl --user enable --now docker-desktop
+    
+    echo -e "${GREEN}Docker Desktop Installed and background service started.${NC}"
 }
 
 install_docker_engine() {
@@ -89,9 +93,13 @@ install_docker_engine() {
     sudo apt-get update
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+    # Enable and start Docker services to run in background
+    sudo systemctl enable --now docker.service
+    sudo systemctl enable --now containerd.service
+
     # User Group
     sudo usermod -aG docker $USER
-    echo -e "${GREEN}Docker Engine Installed. Please re-login for group changes to take effect.${NC}"
+    echo -e "${GREEN}Docker Engine Installed and background service started. Please re-login for group changes to take effect.${NC}"
 }
 
 install_aws_cli() {
