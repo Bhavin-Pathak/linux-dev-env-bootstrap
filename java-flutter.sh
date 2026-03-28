@@ -100,15 +100,24 @@ setup_snap() {
 }
 
 install_flutter() {
-    if is_installed flutter; then
-        echo -e "${GREEN}Flutter is already installed.${NC}"
-        # Still check path config
-        configure_path
-        return
+    print_msg "Installing Flutter Version Management (FVM)"
+    
+    if ! is_installed fvm && [ ! -f "$HOME/fvm/bin/fvm" ]; then
+        curl -fsSL https://fvm.app/install.sh | bash
+        echo -e "${GREEN}FVM Installed.${NC}"
+    else
+        echo -e "${GREEN}FVM is already installed.${NC}"
     fi
-    print_msg "Installing Flutter SDK"
-    sudo snap install flutter --classic
-    echo -e "${GREEN}Flutter SDK Installed.${NC}"
+
+    local fvm_cmd="fvm"
+    if [ -f "$HOME/fvm/bin/fvm" ]; then
+        fvm_cmd="$HOME/fvm/bin/fvm"
+    fi
+
+    print_msg "Installing Flutter (Stable) via FVM"
+    $fvm_cmd install stable
+    $fvm_cmd global stable
+    echo -e "${GREEN}Flutter SDK (Stable) Installed and set as Global.${NC}"
     
     configure_path
 }
@@ -129,12 +138,13 @@ configure_path() {
     fi
 
     # Check and Append
-    if grep -q "snap/flutter/common/flutter/bin" "$shell_config"; then
+    if grep -q "fvm/default/bin" "$shell_config"; then
         echo -e "${GREEN}Path already configured in $shell_config${NC}"
     else
-        echo 'export PATH=$PATH:/snap/bin:/snap/flutter/common/flutter/bin' >> "$shell_config"
-        echo 'export PATH=$PATH:/snap/flutter/common/flutter/bin/cache/dart-sdk/bin' >> "$shell_config"
-        echo -e "${GREEN}Added Flutter/Dart to PATH in $shell_config${NC}"
+        echo 'export PATH=$HOME/fvm/bin:$PATH' >> "$shell_config"
+        echo 'export PATH=$HOME/fvm/default/bin:$PATH' >> "$shell_config"
+        echo 'export PATH=$HOME/fvm/default/bin/cache/dart-sdk/bin:$PATH' >> "$shell_config"
+        echo -e "${GREEN}Added FVM and Flutter/Dart to PATH in $shell_config${NC}"
         echo -e "${YELLOW}Run 'source $shell_config' or restart terminal to apply.${NC}"
     fi
 }
@@ -158,7 +168,7 @@ echo -e "---------------------------"
 setup_snap
 
 check_and_ask "Java (OpenJDK 17)" "java" install_java
-check_and_ask "Flutter SDK" "flutter" install_flutter
+check_and_ask "Flutter (via FVM)" "fvm" install_flutter
 check_and_ask "Android Studio" "android-studio" install_android_studio
 
 echo -e "\n${GREEN}Setup Complete! 📱${NC}"
