@@ -116,29 +116,31 @@ rm -rf ~/.local/share/Trash/*
 # 7. Docker Environment
 # ==========================================
 print_msg "Checking Docker Environment"
-DOCKER_READY=false
 
-if command -v docker-desktop &> /dev/null || [ -d "$HOME/.docker/desktop" ]; then
-  # Try to start Docker Desktop if present
-  systemctl --user start docker-desktop || true
-  sleep 5
-  docker info &> /dev/null && DOCKER_READY=true
-elif systemctl list-unit-files | grep -q docker.service; then
-  # Fallback to standard Docker Engine
-  sudo systemctl start docker
-  sleep 3
-  docker info &> /dev/null && DOCKER_READY=true
-fi
+if command -v docker &> /dev/null; then
+  # Try to start docker if not running
+  if ! docker info &> /dev/null; then
+    if command -v docker-desktop &> /dev/null || [ -d "$HOME/.docker/desktop" ]; then
+      systemctl --user start docker-desktop || true
+      sleep 5
+    else
+      sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+      sleep 3
+    fi
+  fi
 
-if [ "$DOCKER_READY" = true ]; then
-  echo -e "${YELLOW}Pruning Docker (unused images, containers, networks)...${NC}"
-  # Prune everything not currently used
-  docker system prune -f
-  # Optional: aggressive prune (commented out for safety, uncomment if desired)
-  # docker system prune -af --volumes
-  echo -e "${GREEN}✔ Docker cleanup completed${NC}"
+  if docker info &> /dev/null; then
+    echo -e "${YELLOW}Pruning Docker (unused images, containers, networks)...${NC}"
+    # Prune everything not currently used
+    docker system prune -f
+    # Optional: aggressive prune (commented out for safety, uncomment if desired)
+    # docker system prune -af --volumes
+    echo -e "${GREEN}✔ Docker cleanup completed${NC}"
+  else
+    echo -e "${YELLOW}⚠️ Docker daemon is not running. Skipped Docker cleanup.${NC}"
+  fi
 else
-  echo -e "${YELLOW}⚠️ Docker not running. Skipped Docker cleanup.${NC}"
+  echo -e "${YELLOW}⚠️ Docker is not installed. Skipped Docker cleanup.${NC}"
 fi
 
 # ==========================================
